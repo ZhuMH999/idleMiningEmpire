@@ -52,9 +52,9 @@ class Controller:
 
             keys = pygame.key.get_pressed()
             if keys[pygame.K_UP]:
-                self.model.handle_keypress(1)
-            elif keys[pygame.K_DOWN]:
                 self.model.handle_keypress(0)
+            elif keys[pygame.K_DOWN]:
+                self.model.handle_keypress(1)
 
             self.view.draw()
 
