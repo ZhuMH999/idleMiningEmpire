@@ -1,16 +1,50 @@
-# This is a sample Python script.
+import pygame
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+WIDTH, HEIGHT = 600, 800
+
+class View:
+    def __init__(self, model, win):
+        self.model = model
+        self.win = win
+
+    def draw(self):
+        self.win.fill((100, 100, 100))
+
+    def get_text_widget_and_center(self, rgb, c_x, c_y, font, text):
+        widget = font.render(text, True, rgb)
+        rect = widget.get_rect()
+        rect.center = (c_x, c_y)
+        self.win.blit(widget, rect)
+
+class Model:
+    def __init__(self):
+        self.run = True
+
+class Controller:
+    def __init__(self):
+        self.win = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.model = Model()
+        self.view = View(self.model, self.win)
+
+        pygame.display.set_caption('Idle Mining Empire')
+
+    def run(self):
+        clock = pygame.time.Clock()
+
+        while self.model.run:
+            clock.tick(60)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.model.run = False
+
+            self.view.draw()
+
+            pygame.display.update()
+
+        pygame.quit()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    c = Controller()
+    c.run()
