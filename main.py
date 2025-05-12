@@ -1,6 +1,6 @@
 import pygame
 import copy
-from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, elevatorScaleFactor, elevator, cart
+from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, elevatorScaleFactor, elevator, cart, elevatorScale, cartScale, cartScaleFactor
 
 class View:
     def __init__(self, model, win):
@@ -34,11 +34,9 @@ class Model:
         self.run = True
         self.camy = 0
 
-        # thing, xdir, ydir, posx, posy, vel(x or y), return true if switch direction (x or y), waiting time, stops left in cycle, template stops, only stop which side
-        self.moving_things = [[elevator, False, True, 70, 320, 2, lambda x, y: y < 320, 0, [int(300 + 200 * (i+1) + 30) for i in range(9)], [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0],
-                              [cart, True, False, 500, 258, -2, lambda x, y: x > 500, 0, [184], [184], lambda vel: vel < 0]]
-
-        self.miners = []
+        # thing, xdir, ydir, posx, posy, vel(x or y), return true if switch direction (x or y), waiting time, stops left in cycle, template stops, only stop which side, unlocked manager, moving, moving condition (do later)
+        self.moving_things = [[elevator, False, True, 70, 320, 2, lambda x, y: y < 320, 0, [int(300 + 200 * (i+1) + 30) for i in range(9)], [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0, False, False],
+                              [cart, True, False, 500, 258, -2, lambda x, y: x > 500, 0, [184], [184], lambda vel: vel < 0, False, False]]
 
     def handle_keypress(self, key):
         if key == 0 and self.camy != 0:
@@ -48,39 +46,53 @@ class Model:
         elif key == 1:
             self.camy += 10
 
+    def handle_mouseclick(self, x, y):
+        for i in range(len(self.moving_things)):
+            if not self.moving_things[i][11]:
+                if i == 0:
+                    if elevator.get_rect(center=(self.moving_things[0][3] + (elevatorScale[0] * elevatorScaleFactor) / 2, self.moving_things[0][4] + (elevatorScale[1] * elevatorScaleFactor) / 2 - self.camy)).collidepoint((x, y)) and not self.moving_things[i][12]:
+                        self.moving_things[i][12] = True
+                elif i == 1:
+                    if cart.get_rect(center=(self.moving_things[1][3] + (cartScale[0] * cartScaleFactor) / 2, self.moving_things[1][4] + (cartScale[1] * cartScaleFactor) / 2 - self.camy)).collidepoint((x, y)) and not self.moving_things[i][12]:
+                        self.moving_things[i][12] = True
+
     def handle_movement(self):
         for thing in self.moving_things:
-            if thing[7] == 0:
-                if ((thing[1] and thing[3] in thing[8]) or (thing[2] and thing[4] in thing[8])) and thing[10](thing[5]):
-                    if thing[1]:
-                        thing[8].remove(thing[3])
-                    elif thing[2]:
-                        thing[8].remove(thing[4])
-                    thing[7] = 60
+            if thing[12]:
+                if thing[7] == 0:
+                    if ((thing[1] and thing[3] in thing[8]) or (thing[2] and thing[4] in thing[8])) and thing[10](thing[5]):
+                        if thing[1]:
+                            thing[8].remove(thing[3])
+                        elif thing[2]:
+                            thing[8].remove(thing[4])
+                        thing[7] = 60
 
-                elif thing[6](thing[3], thing[4]):
-                    thing[5] *= -1
-                    if thing[1]:
-                        thing[3] += thing[5]
-                    elif thing[2]:
-                        thing[4] += thing[5]
+                    elif thing[6](thing[3], thing[4]):
+                        if not thing[11]:
+                            thing[12] = False
 
-                elif len(thing[8]) == 0:
-                    thing[8] = copy.deepcopy(thing[9])
-                    thing[5] *= -1
-                    if thing[1]:
-                        thing[3] += thing[5]
-                    elif thing[2]:
-                        thing[4] += thing[5]
+                        thing[5] *= -1
+                        if thing[1]:
+                            thing[3] += thing[5]
+                        elif thing[2]:
+                            thing[4] += thing[5]
+
+                    elif len(thing[8]) == 0:
+                        thing[8] = copy.deepcopy(thing[9])
+                        thing[5] *= -1
+                        if thing[1]:
+                            thing[3] += thing[5]
+                        elif thing[2]:
+                            thing[4] += thing[5]
+
+                    else:
+                        if thing[1]:
+                            thing[3] += thing[5]
+                        elif thing[2]:
+                            thing[4] += thing[5]
 
                 else:
-                    if thing[1]:
-                        thing[3] += thing[5]
-                    elif thing[2]:
-                        thing[4] += thing[5]
-
-            else:
-                thing[7] -= 1
+                    thing[7] -= 1
 
 class Controller:
     def __init__(self):
@@ -99,6 +111,10 @@ class Controller:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.model.run = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        x, y = pygame.mouse.get_pos()
+                        self.model.handle_mouseclick(x, y)
 
             keys = pygame.key.get_pressed()
             if keys[pygame.K_UP]:
