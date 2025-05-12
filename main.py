@@ -1,4 +1,5 @@
 import pygame
+import copy
 from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, elevatorScaleFactor, elevator, cart
 
 class View:
@@ -19,8 +20,8 @@ class View:
                 pygame.draw.rect(self.win, (80, 80, 80), (building[1] + (elevatorShaftScale[0]*elevatorScaleFactor/2) - 15, building[2] + (elevatorShaftScale[1]*elevatorScaleFactor/2) - 15 - self.model.camy, 30, 30))
                 self.get_text_widget_and_center((0, 0, 0), building[1] + (elevatorShaftScale[0]*elevatorScaleFactor/2), building[2] + (elevatorShaftScale[1]*elevatorScaleFactor/2) - self.model.camy, ELEVATOR_SHAFT_FONT, str(building[3]))
 
-        self.win.blit(elevator, (70, 320 + self.model.elevator[0] - self.model.camy))
-        self.win.blit(cart, (185, 300 - 14 * 3 - self.model.camy))
+        for thing in self.model.moving_things:
+            self.win.blit(thing[0], (thing[3], thing[4] - self.model.camy))
 
     def get_text_widget_and_center(self, rgb, c_x, c_y, font, text):
         widget = font.render(text, True, rgb)
@@ -33,9 +34,11 @@ class Model:
         self.run = True
         self.camy = 0
 
-        self.miners = []
+        # thing, xdir, ydir, posx, posy, vel(x or y), return true if switch direction (x or y), waiting time, stops left in cycle, template stops, only stop which side
+        self.moving_things = [[elevator, False, True, 70, 320, 2, lambda x, y: y < 320, 0, [int(300 + 200 * (i+1) + 30) for i in range(9)], [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0],
+                              [cart, True, False, 500, 258, -2, lambda x, y: x > 500, 0, [184], [184], lambda vel: vel < 0]]
 
-        self.elevator = [0, -2, 0, [int(200 * (i+1)) for i in range(9)]]  # y, vel, wait, stops
+        self.miners = []
 
     def handle_keypress(self, key):
         if key == 0 and self.camy != 0:
@@ -46,28 +49,38 @@ class Model:
             self.camy += 10
 
     def handle_movement(self):
-        self.handle_elevator_movement()
+        for thing in self.moving_things:
+            if thing[7] == 0:
+                if ((thing[1] and thing[3] in thing[8]) or (thing[2] and thing[4] in thing[8])) and thing[10](thing[5]):
+                    if thing[1]:
+                        thing[8].remove(thing[3])
+                    elif thing[2]:
+                        thing[8].remove(thing[4])
+                    thing[7] = 60
 
-    def handle_elevator_movement(self):
-        if self.elevator[2] == 0:
-            if self.elevator[0] in self.elevator[3] and self.elevator[1] > 0:
-                self.elevator[3].remove(self.elevator[0])
-                self.elevator[2] = 60
+                elif thing[6](thing[3], thing[4]):
+                    thing[5] *= -1
+                    if thing[1]:
+                        thing[3] += thing[5]
+                    elif thing[2]:
+                        thing[4] += thing[5]
 
-            elif self.elevator[0] < 1:
-                self.elevator[1] *= -1
-                self.elevator[0] += self.elevator[1]
+                elif len(thing[8]) == 0:
+                    thing[8] = copy.deepcopy(thing[9])
+                    thing[5] *= -1
+                    if thing[1]:
+                        thing[3] += thing[5]
+                    elif thing[2]:
+                        thing[4] += thing[5]
 
-            elif len(self.elevator[3]) == 0:
-                self.elevator[3] = [int(200 * (i + 1)) for i in range(9)]
-                self.elevator[1] *= -1
-                self.elevator[0] += self.elevator[1]
+                else:
+                    if thing[1]:
+                        thing[3] += thing[5]
+                    elif thing[2]:
+                        thing[4] += thing[5]
 
             else:
-                self.elevator[0] += self.elevator[1]
-
-        else:
-            self.elevator[2] -= 1
+                thing[7] -= 1
 
 class Controller:
     def __init__(self):
