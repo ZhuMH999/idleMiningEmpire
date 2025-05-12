@@ -1,5 +1,5 @@
 import pygame
-from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS
+from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, scaleFactor
 
 class View:
     def __init__(self, model, win):
@@ -8,10 +8,16 @@ class View:
 
     def draw(self):
         self.win.fill((100, 100, 100))
+
         for stage in STAGES:
             pygame.draw.rect(self.win, stage[2], (0, stage[1] - self.model.camy, WIDTH, stage[0]))
+
         for building in BUILDINGS:
             self.win.blit(building[0], (building[1], building[2] - self.model.camy))
+
+            if len(building) == 4:
+                pygame.draw.rect(self.win, (80, 80, 80), (building[1] + (elevatorShaftScale[0]*scaleFactor/2) - 15, building[2] + (elevatorShaftScale[1]*scaleFactor/2) - 15 - self.model.camy, 30, 30))
+                self.get_text_widget_and_center((0, 0, 0), building[1] + (elevatorShaftScale[0]*scaleFactor/2), building[2] + (elevatorShaftScale[1]*scaleFactor/2) - self.model.camy, ELEVATOR_SHAFT_FONT, str(building[3]))
 
     def get_text_widget_and_center(self, rgb, c_x, c_y, font, text):
         widget = font.render(text, True, rgb)
