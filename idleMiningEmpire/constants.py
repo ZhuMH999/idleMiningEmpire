@@ -15,10 +15,15 @@ elevatorScaleFactor = 5
 cartScale = [21, 14]
 cartScaleFactor = 3
 
+buttonScale = [20, 13]
+buttonScaleFactor = 5
+
 elevatorShaft = pygame.transform.scale(pygame.image.load('idleMiningEmpire/assets/elevatorShaft.png'), (elevatorShaftScale[0] * elevatorScaleFactor, elevatorShaftScale[1] * elevatorScaleFactor))
 elevatorBuilding = pygame.transform.scale(pygame.image.load('idleMiningEmpire/assets/elevatorBuilding.png'), (elevatorBuildingScale[0] * elevatorScaleFactor, elevatorBuildingScale[1] * elevatorScaleFactor))
 elevator = pygame.transform.scale(pygame.image.load('idleMiningEmpire/assets/elevator.png'), (elevatorScale[0] * elevatorScaleFactor, elevatorScale[1] * elevatorScaleFactor))
 cart = pygame.transform.scale(pygame.image.load('idleMiningEmpire/assets/cart.png'), (cartScale[0] * cartScaleFactor, cartScale[1] * cartScaleFactor))
+
+button = pygame.transform.scale(pygame.image.load('idleMiningEmpire/assets/button.png'), (buttonScale[0] * buttonScaleFactor, buttonScale[1] * buttonScaleFactor))
 
 ELEVATOR_SHAFT_FONT = pygame.font.SysFont('Arial', 15)
 

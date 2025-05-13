@@ -1,6 +1,6 @@
 import pygame
 import copy
-from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, elevatorScaleFactor, elevator, cart, elevatorScale, cartScale, cartScaleFactor
+from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, elevatorScaleFactor, elevator, cart, button
 
 class View:
     def __init__(self, model, win):
@@ -18,19 +18,31 @@ class View:
 
             if len(building) == 4:
                 pygame.draw.rect(self.win, (80, 80, 80), (building[1] + (elevatorShaftScale[0]*elevatorScaleFactor/2) - 15, building[2] + (elevatorShaftScale[1]*elevatorScaleFactor/2) - 15 - self.model.camy, 30, 30))
-                self.get_text_widget_and_center((0, 0, 0), building[1] + (elevatorShaftScale[0]*elevatorScaleFactor/2), building[2] + (elevatorShaftScale[1]*elevatorScaleFactor/2) - self.model.camy, ELEVATOR_SHAFT_FONT, str(building[3]))
+                self.get_text_widget_and_center((0, 0, 0), building[1] + (elevatorShaftScale[0]*elevatorScaleFactor/2), building[2] + (elevatorShaftScale[1]*elevatorScaleFactor/2) - self.model.camy, ELEVATOR_SHAFT_FONT, str(building[3]), 0)
 
         for thing in self.model.moving_things:
-            self.win.blit(thing.image, (thing.posx, thing.posy - self.model.camy))
+            if thing.stage in self.model.unlocked_stages:
+                self.win.blit(thing.image, (thing.posx, thing.posy - self.model.camy))
 
-    def get_text_widget_and_center(self, rgb, c_x, c_y, font, text):
+        for thing in self.model.buttons:
+            if thing.stage in self.model.unlocked_stages:
+                self.win.blit(thing.image, (thing.x, thing.y - self.model.camy))
+
+            for i in range(len(thing.text)):
+                self.get_text_widget_and_center((0, 0, 0), thing.x + 10, thing.y + 5 - self.model.camy + i*20, ELEVATOR_SHAFT_FONT, thing.text[i], 1)
+
+    def get_text_widget_and_center(self, rgb, c_x, c_y, font, text, centerorleft):  # center = 0, left = 1
         widget = font.render(text, True, rgb)
         rect = widget.get_rect()
-        rect.center = (c_x, c_y)
+        if centerorleft == 0:
+            rect.center = (c_x, c_y)
+        elif centerorleft == 1:
+            rect.topleft = (c_x, c_y)
+
         self.win.blit(widget, rect)
 
 class MovingObject:
-    def __init__(self, image, x, y, posx, posy, vel, direction_switch_condition, template_stops, stop_side, manager=False, moving_condition=True):
+    def __init__(self, image, x, y, posx, posy, vel, direction_switch_condition, template_stops, stop_side, stage, manager=False, moving_condition=True):
         self.image = image
         self.image_rect = self.image.get_rect(topleft=(posx, posy))
 
@@ -40,6 +52,7 @@ class MovingObject:
         self.posy = posy
         self.vel = vel
 
+        self.stage = stage
         self.direction_switch_condition = direction_switch_condition
         self.template_stops = template_stops
         self.stops_left = copy.deepcopy(self.template_stops)
@@ -84,13 +97,34 @@ class MovingObject:
             else:
                 self.stop_timer -= 1
 
+class StaticObject:
+    def __init__(self, image, x, y, stage, next_stage, cost, text):
+        self.image = image
+        self.image_rect = image.get_rect(topleft=(x, y))
+        self.x = x
+        self.y = y
+        self.stage = stage
+        self.next_stage = next_stage
+        self.cost = cost
+        self.text = text
+
+    def handle_click(self, money):
+        if money >= self.cost:
+            return money - self.cost, self.next_stage
+        else:
+            return None, None
+
 class Model:
     def __init__(self):
         self.run = True
+        self.money = 0
         self.camy = 0
+        self.unlocked_stages = [0]
 
-        self.moving_things = [MovingObject(elevator, False, True, 70, 320, 2, lambda x, y: y < 320, [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0),
-                              MovingObject(cart, True, False, 500, 258, -2, lambda x, y: x > 500, [184], lambda vel: vel < 0)]
+        self.moving_things = [MovingObject(elevator, False, True, 70, 320, 2, lambda x, y: y < 320, [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0, 1),
+                              MovingObject(cart, True, False, 500, 258, -2, lambda x, y: x > 500, [184], lambda vel: vel < 0, 0)]
+
+        self.buttons = [StaticObject(button, 370, 700, 0, 1, 0, ['Buy', 'Elevator: $0'])]
 
     def handle_keypress(self, key):
         if key == 0 and self.camy != 0:
@@ -102,8 +136,21 @@ class Model:
 
     def handle_mouseclick(self, x, y):
         for i in range(len(self.moving_things)):
-            if self.moving_things[i].image_rect.collidepoint((x, y)) and not self.moving_things[i].moving:
+            print(f'i: {i}, moving: {self.moving_things[i].moving}')
+            if self.moving_things[i].image_rect.collidepoint((x, y)) and not self.moving_things[i].moving and self.moving_things[i].stage in self.unlocked_stages:
                 self.moving_things[i].moving = True
+
+        remove = []
+        for i in range(len(self.buttons)):
+            if self.buttons[i].image_rect.collidepoint((x, y)) and self.buttons[i].stage in self.unlocked_stages:
+                new_money, stage = self.buttons[i].handle_click(self.money)
+                if new_money is not None:
+                    self.money = new_money
+                    self.unlocked_stages.append(stage)
+                    remove.append(self.buttons[i])
+
+        for item in remove:
+            self.buttons.remove(item)
 
     def handle_movement(self):
         for thing in self.moving_things:
