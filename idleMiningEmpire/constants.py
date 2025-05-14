@@ -4,8 +4,9 @@ pygame.font.init()
 
 WIDTH, HEIGHT = 600, 800
 
-STAGES = [[300, 0, (100, 100, 255)],
-          [200, 300, (100, 0, 0)]]
+# height, y, color, stage
+STAGES = [[300, 0, (100, 100, 255), 0],
+          [200, 300, (100, 0, 0), 1]]
 
 elevatorShaftScale = [20, 41]
 elevatorBuildingScale = [37, 39]
@@ -27,7 +28,8 @@ button = pygame.transform.scale(pygame.image.load('idleMiningEmpire/assets/butto
 
 ELEVATOR_SHAFT_FONT = pygame.font.SysFont('Arial', 15)
 
-BUILDINGS = [[elevatorShaft, 60, 300],
+#  image, x, y, number (if any)
+BUILDINGS = [[elevatorShaft, 60, 300, 0],
              [elevatorShaft, 60, 500, 1],
              [elevatorShaft, 60, 700, 2],
              [elevatorShaft, 60, 900, 3],
@@ -37,4 +39,4 @@ BUILDINGS = [[elevatorShaft, 60, 300],
              [elevatorShaft, 60, 1700, 7],
              [elevatorShaft, 60, 1900, 8],
              [elevatorShaft, 60, 2100, 9],
-             [elevatorBuilding, 60, STAGES[0][0] - (elevatorBuildingScale[1]-4) * elevatorScaleFactor]]
+             [elevatorBuilding, 60, STAGES[0][0] - (elevatorBuildingScale[1]-4) * elevatorScaleFactor, 0]]
