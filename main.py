@@ -44,7 +44,7 @@ class View:
         self.win.blit(widget, rect)
 
 class MovingObject:
-    def __init__(self, image, x, y, posx, posy, vel, direction_switch_condition, template_stops, stop_side, stage, manager=False, moving_condition=True):
+    def __init__(self, image, x, y, posx, posy, vel, direction_switch_condition, template_stops, stop_side, stage, manager=False, moving_condition=True, affected_by_stages=False):
         self.image = image
 
         self.xdir = x
@@ -56,14 +56,16 @@ class MovingObject:
         self.stage = stage
         self.direction_switch_condition = direction_switch_condition
         self.template_stops = template_stops
-        self.stops_left = copy.deepcopy(self.template_stops)
+        self.stops_left = []
         self.stop_side = stop_side
         self.manager = manager
         self.moving_condition = moving_condition
+        self.affected_by_stages = affected_by_stages
         self.moving = False
         self.stop_timer = 0
+        self.load = 0
 
-    def handle_movement(self):
+    def handle_movement(self, unlocked_stages):
         if self.moving:
             if self.stop_timer == 0:
                 if ((self.xdir and self.posx in self.stops_left) or (self.ydir and self.posy in self.stops_left)) and self.stop_side(self.vel):
@@ -77,6 +79,7 @@ class MovingObject:
                 elif self.direction_switch_condition(self.posx, self.posy):
                     if not self.manager:
                         self.moving = False
+                    self.stops_left = self.handle_stops(unlocked_stages)
 
                     self.vel *= -1
 
@@ -86,7 +89,7 @@ class MovingObject:
                         self.posy += self.vel
 
                 elif len(self.stops_left) == 0:
-                    self.stops_left = copy.deepcopy(self.template_stops)
+                    self.stops_left = self.handle_stops(unlocked_stages)
                     self.vel *= -1
 
                 else:
@@ -97,6 +100,18 @@ class MovingObject:
 
             else:
                 self.stop_timer -= 1
+
+    def handle_stops(self, unlocked_stages):
+        if self.affected_by_stages:
+            new_stops = []
+            for stop in self.template_stops:
+                stage = int((stop - 330) / 200)
+                if stage in unlocked_stages:
+                    new_stops.append(stop)
+
+            return new_stops
+        else:
+            return self.template_stops
 
 class StaticObject:
     def __init__(self, image, x, y, stage, next_stage, cost, text, disappear=False):
@@ -122,8 +137,8 @@ class Model:
         self.camy = 0
         self.unlocked_stages = [0]
 
-        self.moving_things = [MovingObject(elevator, False, True, 70, 320, 2, lambda x, y: y < 320, [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0, 1),
-                              MovingObject(cart, True, False, 500, 258, -2, lambda x, y: x > 500, [184], lambda vel: vel < 0, 0)]
+        self.moving_things = [MovingObject(elevator, False, True, 70, 320, -2, lambda x, y: y < 320, [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0, 1, affected_by_stages=True),
+                              MovingObject(cart, True, False, 500, 258, 2, lambda x, y: x > 500, [184], lambda vel: vel < 0, 0)]
 
         # image, x, y, stage, nextstage, cost, text, disappear
         self.buttons = [StaticObject(button, 370, 700, 0, 1, 0, ['Buy', 'Elevator: $0'], True),
@@ -154,7 +169,7 @@ class Model:
 
     def handle_movement(self):
         for thing in self.moving_things:
-            thing.handle_movement()
+            thing.handle_movement(self.unlocked_stages)
 
 class Controller:
     def __init__(self):
