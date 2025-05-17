@@ -1,5 +1,4 @@
 import pygame
-import copy
 from idleMiningEmpire.constants import WIDTH, HEIGHT, STAGES, BUILDINGS, ELEVATOR_SHAFT_FONT, elevatorShaftScale, elevatorScaleFactor, elevator, cart, button
 
 class View:
@@ -113,6 +112,21 @@ class MovingObject:
         else:
             return self.template_stops
 
+    def handle_click(self, unlocked_stages, f_items, d_items):
+        self.moving = True
+
+class Elevator(MovingObject):
+    def handle_click(self, unlocked_stages, f_items, d_items):
+        for i in range(len(f_items)):
+            if i in unlocked_stages and f_items[i] != 0:
+                self.moving = True
+
+class Cart(MovingObject):
+    def handle_click(self, unlocked_stages, f_items, d_items):
+        if d_items != 0:
+            self.moving = True
+
+
 class StaticObject:
     def __init__(self, image, x, y, stage, next_stage, cost, text, disappear=False):
         self.image = image
@@ -137,12 +151,15 @@ class Model:
         self.camy = 0
         self.unlocked_stages = [0]
 
-        self.moving_things = [MovingObject(elevator, False, True, 70, 320, -2, lambda x, y: y < 320, [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0, 1, affected_by_stages=True),
-                              MovingObject(cart, True, False, 500, 258, 2, lambda x, y: x > 500, [184], lambda vel: vel < 0, 0)]
+        self.moving_things = [Elevator(elevator, False, True, 70, 320, -2, lambda x, y: y < 320, [int(300 + 200 * (i+1) + 30) for i in range(9)], lambda vel: vel > 0, 1, affected_by_stages=True),
+                              Cart(cart, True, False, 500, 258, 2, lambda x, y: x > 500, [184], lambda vel: vel < 0, 0)]
 
         # image, x, y, stage, nextstage, cost, text, disappear
         self.buttons = [StaticObject(button, 370, 700, 0, 1, 0, ['Buy', 'Elevator: $0'], True),
                         StaticObject(button, 450, 600, 1, 2, 0, ['testing'], True)]
+
+        self.f_items = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.d_items = 0
 
     def handle_keypress(self, key):
         if key == 0 and self.camy != 0:
@@ -156,7 +173,7 @@ class Model:
         for i in range(len(self.moving_things)):
             print(f'i: {i}, moving: {self.moving_things[i].moving}')
             if self.moving_things[i].image.get_rect(topleft=(self.moving_things[i].posx, self.moving_things[i].posy - self.camy)).collidepoint((x, y)) and not self.moving_things[i].moving and self.moving_things[i].stage in self.unlocked_stages:
-                self.moving_things[i].moving = True
+                self.moving_things[i].handle_click(self.unlocked_stages, self.f_items, self.d_items)
 
         for b in self.buttons:
             if b.image.get_rect(topleft=(b.x, b.y - self.camy)).collidepoint((x, y)) and b.stage in self.unlocked_stages:
